@@ -2,9 +2,26 @@ import React, { useEffect, useState } from 'react'
 import UserApi from '../API/UserApi'
 import {toast} from 'react-toastify'
 import { NavLink } from 'react-router-dom'
-
+import ReactPaginate from 'react-paginate'
 function Home() {
   const [users , setUsers] = useState([])
+
+  const [index , setIndex] = useState(0) //begining index
+
+  const itemsPerPage = 5
+  const endIndex =index + itemsPerPage ; //ending index
+  const pcount = Math.ceil(users.length / itemsPerPage) //page count
+
+  //current activate page items
+
+  const currentUsers = users.slice(index,endIndex)
+
+  //page item handler
+  const pageItemHandler = (e) => {
+    console.log(`selected item=`,e.selected) //page item index
+    let newIndex = (e.selected * itemsPerPage) % users.length;
+    setIndex(newIndex)
+  }
 
   const readHandler = async () => {
     await UserApi.readAll().then(res => {
@@ -18,7 +35,19 @@ function Home() {
 
   useEffect(() => {
     readHandler()
-  },[])
+  },[users])
+
+  //delete 
+  const deleteHandler = async (id) => {
+    if(window.confirm(`Are you sure to delete user id?`)) {
+        await UserApi.deleteUser(id)
+        .then(res => {
+            toast.success(res.data.msg)
+        }).catch(err => toast.error(err.response.data.msg))
+    }else {
+        toast.warning(`delete terminated`)
+    }
+}
   return (
     <div className="container">
       <div className="row mt-4">
@@ -42,7 +71,7 @@ function Home() {
               </thead>
               <tbody>
                 {
-                  users && users.map((item,index) => {
+                  currentUsers && currentUsers.map((item,index) => {
                     return (
                       <tr key={index} className='text-center'>
                         <td> {item._id}</td>
@@ -52,12 +81,12 @@ function Home() {
                         <td> { item.isActive? <strong className='text-success'>Activate</strong> : <strong
                           className='text-danger'>Blocked</strong>} </td>
                           <td>
-                            <NavLink className="btn btn-sm btn-info" title='Edit'>
+                            <NavLink  to={`/edit/${item._id}`}className="btn btn-sm btn-info" title='Edit'>
                               <i className="bi bi-pencil"></i>
                             </NavLink>
                           
 
-                          <button className="btn btn-sm btn-danger" title="Delete">
+                          <button className="btn btn-sm btn-danger"  onClick={ () =>deleteHandler(item._id)} title="Delete">
                             <i className="bi bi-trash"></i>
                           </button>
                           </td>
@@ -67,6 +96,24 @@ function Home() {
                   })
                 }
               </tbody>
+              <tfoot>
+               <tr>
+                <th colSpan={6} >
+                <ReactPaginate pageCount={pcount} className='pagination justify-content-center'
+                pageClassName='page-item'
+                onPageChange={pageItemHandler}
+                pageLinkClassName='page-link'
+                nextClassName='page-item'
+                nextLinkClassName='page-link'
+                previousClassName='page-item'
+                previousLinkClassName='page-link'
+                activeClassName='active'
+                activeLinkClassName='active'
+                breakLabel="..."
+                pageRangeDisplayed={3}/>
+                </th>
+               </tr>
+              </tfoot>
             </div>
           </div>
         </div>
